@@ -1,0 +1,147 @@
+<?
+session_start(); 
+echo $my_session_variable;
+?>
+<!DOCTYPE html>
+<html lang="en">
+<!-- Give Credit to @possan -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+	<link href='http://fonts.googleapis.com/css?family=Droid+Sans' rel='stylesheet' type='text/css'>
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.11.1.js"></script>
+	<script>
+
+	var user_token = '';
+	var user_name = '';
+	var args = {};
+
+	function getUsername(callback) {
+		var url = 'https://api.spotify.com/v1/me';
+		$.ajax(url, {
+			dataType: 'json',
+			headers: {
+				'Authorization': 'Bearer ' + user_token
+			},
+			success: function(r) {
+				callback(r.id);
+			},
+			error: function(r) {
+				callback(null);
+			}
+		});
+	}
+
+	function createPlaylist(username, name, callback) {
+		console.log('PlayList ', name);
+		var url = 'https://api.spotify.com/v1/users/' + username + '/playlists';
+		$.ajax(url, {
+			method: 'POST',
+			data: JSON.stringify({
+				'name': name,
+				'public': false
+			}),
+			dataType: 'json',
+			headers: {
+				'Authorization': 'Bearer ' + user_token,
+				'Content-Type': 'application/json'
+			},
+			success: function(r) {
+				callback(r.id);
+			},
+			error: function(r) {
+				callback(null);
+			}
+		});
+	}
+
+	function uploadList() {
+		var hash = location.hash.replace(/#/g, '');
+		var all = hash.split('&');
+		var args = {};
+		all.forEach(function(keyvalue) {
+			var idx = keyvalue.indexOf('=');
+			var key = keyvalue.substring(0, idx);
+			var val = keyvalue.substring(idx + 1);
+			args[key] = val;
+		});
+
+		var uris = '';
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function(){
+		  if(xmlhttp.status == 200 && xmlhttp.readyState == 4){
+		    uris = xmlhttp.responseText;
+		  }
+		};
+		xmlhttp.open("GET","uris.txt",true);
+		xmlhttp.send();
+
+		user_token = args['access_token'];
+		var playlist = '';
+		var username = '';
+		getUsername(function(username) {
+			createPlaylist(username, username, function(playlist) {
+			var url = 'https://api.spotify.com/v1/users/' + username +
+				'/playlists/' + playlist +
+				//'/tracks?uris=spotify:track:3SaIsrEzrQGDcG1jCeaK8q,spotify:track:7EYWEwJyai7udNmqvRPsZM';
+				//'/tracks?uris=' + <?php $file=fopen("uris.txt", "r"); $uris = fread($file, filesize('uris.txt')); echo $uris;?>
+				'/tracks?uris=' + uris;
+
+				$.ajax(url, {
+					method: 'POST',
+					data: JSON.stringify(url),
+					dataType: 'text',
+					headers: {
+						'Authorization': 'Bearer ' + user_token,
+						'Content-Type': 'application/json'
+					},
+				});
+				$('#listSubmit').attr('href', 'spotify:user:'+username+':playlist:'+playlist);
+			});
+		});
+	}
+
+	</script>
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link href="css/jumbotron.css" rel="stylesheet">
+	<title>Accio! | Grab your playlist from Spotify</title>
+  </head>
+
+  <!--<body onload="uploadList()">-->
+  <body onload="uploadList()">
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+        </div>
+      </div>
+    </div>
+
+	<!-- Jumbotron -->
+    <div class="jumbotron" style="padding:0 0 0 0;">
+      <div class="container" style="text-align:center;">
+        <img src="Accio-logo.png" height='120px'>
+      </div>
+    </div>
+
+	<!-- Container -->
+    <div class="container">
+      <div class="row">
+        <div class="col-md center" style="padding-left:10px; padding-right:10px;">
+          <h2 style="text-align:center;">Your Playlist is Generated</h2>
+		  <a id="listSubmit" class="btn btn-lg btn-primary btn-block">Go and Check your Playlist!</a>
+        </div>
+      </div>
+    </div> 
+	<!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/respond.js"></script>
+
+  </body>
+</html>
